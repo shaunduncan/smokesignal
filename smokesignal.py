@@ -5,9 +5,7 @@ from collections import defaultdict
 from functools import wraps
 
 
-__all__ = ['emit', 'on', 'once', 'disconnect']
-
-
+# Collection of receivers/callbacks
 receivers = defaultdict(set)
 
 
