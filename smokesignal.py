@@ -2,6 +2,8 @@
 smokesignal.py - simple event signaling
 """
 from collections import defaultdict
+from functools import wraps
+
 
 __all__ = ['emit', 'on', 'once', 'disconnect']
 
@@ -38,6 +40,18 @@ def once(signal, callback):
     """
     Registers a callback that will receive at most one event signal
     """
+    if not callable(callback):
+        raise AssertionError('Signal callbacks must be callable')
+
+    callback._called = False
+
+    @wraps(callback)
+    def wrapper(*args, **kwargs):
+        if not callback._called:
+            callback._called = True
+            return callback(*args, **kwargs)
+
+    on(signal, wrapper)
 
 
 def disconnect(signal, callback):
@@ -45,3 +59,18 @@ def disconnect(signal, callback):
     Unregisters a callback from receiving events
     """
     receivers[signal].remove(callback)
+
+
+def clear(signal):
+    """
+    Clears all callbacks for a particular signal
+    """
+    receivers[signal].clear()
+
+
+def clear_all():
+    """
+    Clears all callbacks for all signals
+    """
+    for key in receivers.keys():
+        receivers[key].clear()
