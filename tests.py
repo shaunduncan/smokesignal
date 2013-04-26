@@ -93,6 +93,24 @@ class SmokesignalTestCase(TestCase):
         assert self.callback not in smokesignal._receivers['foo']
         assert self.callback not in smokesignal._receivers['bar']
 
+    def test_signals(self):
+        # Register first
+        smokesignal.on('foo', self.callback)
+        smokesignal.on('bar', self.callback)
+
+        assert 'foo' in smokesignal.signals(self.callback)
+        assert 'bar' in smokesignal.signals(self.callback)
+
+    def test_is_registered_for_true(self):
+        # Register first
+        smokesignal.on('foo', self.callback)
+        assert smokesignal.is_registered_for(self.callback, 'foo') is True
+
+    def test_is_registered_for_false(self):
+        # Register first
+        smokesignal.on('foo', self.callback)
+        assert smokesignal.is_registered_for(self.callback, 'bar') is False
+
     def test_once_raises(self):
         self.assertRaises(AssertionError, smokesignal.once, 'foo', None)
 

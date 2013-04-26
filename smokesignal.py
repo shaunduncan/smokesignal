@@ -17,6 +17,20 @@ def emit(signal, *args, **kwargs):
         callback(*args, **kwargs)
 
 
+def signals(callback):
+    """
+    Returns a tuple of all signals for a particular callback
+    """
+    return (s for s in _receivers if is_registered_for(callback, s))
+
+
+def is_registered_for(callback, signal):
+    """
+    Returns bool if callback will respond to a particular signal
+    """
+    return callback in _receivers[signal]
+
+
 # TODO: This should be a function decorator as well
 # so I can register a callback more easily:
 #
