@@ -17,20 +17,20 @@ class SmokesignalTestCase(TestCase):
 
     def test_clear(self):
         smokesignal.on('foo', self.callback)
-        assert len(smokesignal.receivers['foo']) == 1
+        assert len(smokesignal._receivers['foo']) == 1
 
         smokesignal.clear('foo')
-        assert len(smokesignal.receivers['foo']) == 0
+        assert len(smokesignal._receivers['foo']) == 0
 
     def test_clear_all(self):
         smokesignal.on('foo', self.callback)
         smokesignal.on('bar', self.callback)
-        assert len(smokesignal.receivers['foo']) == 1
-        assert len(smokesignal.receivers['bar']) == 1
+        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal._receivers['bar']) == 1
 
         smokesignal.clear_all()
-        assert len(smokesignal.receivers['foo']) == 0
-        assert len(smokesignal.receivers['bar']) == 0
+        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal._receivers['bar']) == 0
 
     def test_emit_with_no_callbacks(self):
         smokesignal.emit('foo')
@@ -38,7 +38,7 @@ class SmokesignalTestCase(TestCase):
     def test_emit_with_callbacks(self):
         # Register first
         smokesignal.on('foo', self.mock_callback)
-        assert self.mock_callback in smokesignal.receivers['foo']
+        assert self.mock_callback in smokesignal._receivers['foo']
 
         smokesignal.emit('foo')
         assert self.mock_callback.called
@@ -46,7 +46,7 @@ class SmokesignalTestCase(TestCase):
     def test_emit_with_callback_args(self):
         # Register first
         smokesignal.on('foo', self.mock_callback)
-        assert self.mock_callback in smokesignal.receivers['foo']
+        assert self.mock_callback in smokesignal._receivers['foo']
 
         smokesignal.emit('foo', 1, 2, 3, foo='bar')
         assert self.mock_callback.called_with(1, 2, 3, foo='bar')
@@ -56,16 +56,42 @@ class SmokesignalTestCase(TestCase):
 
     def test_on_registers(self):
         smokesignal.on('foo', self.callback)
-        assert self.callback in smokesignal.receivers['foo']
+        assert self.callback in smokesignal._receivers['foo']
 
     def test_disconnect(self):
         # Register first
         smokesignal.on('foo', self.callback)
-        assert self.callback in smokesignal.receivers['foo']
+        smokesignal.on('bar', self.callback)
+        assert self.callback in smokesignal._receivers['foo']
+        assert self.callback in smokesignal._receivers['bar']
+
+        smokesignal.disconnect(self.callback)
+        assert self.callback not in smokesignal._receivers['foo']
+        assert self.callback not in smokesignal._receivers['bar']
+
+    def test_disconnect_from_removes_only_one(self):
+        # Register first
+        smokesignal.on('foo', self.callback)
+        smokesignal.on('bar', self.callback)
+        assert self.callback in smokesignal._receivers['foo']
+        assert self.callback in smokesignal._receivers['bar']
 
         # Remove it
-        smokesignal.disconnect('foo', self.callback)
-        assert self.callback not in smokesignal.receivers['foo']
+        smokesignal.disconnect_from(self.callback, 'foo')
+        assert self.callback not in smokesignal._receivers['foo']
+        assert self.callback in smokesignal._receivers['bar']
+
+    def test_disconnect_from_removes_all(self):
+        # Register first
+        smokesignal.on('foo', self.callback)
+        smokesignal.on('bar', self.callback)
+        assert self.callback in smokesignal._receivers['foo']
+        assert self.callback in smokesignal._receivers['bar']
+
+        # Remove it
+        smokesignal.disconnect_from(self.callback, 'foo', 'bar')
+        assert self.callback not in smokesignal._receivers['foo']
+        assert self.callback not in smokesignal._receivers['bar']
 
     def test_once_raises(self):
         self.assertRaises(AssertionError, smokesignal.once, 'foo', None)
@@ -78,7 +104,7 @@ class SmokesignalTestCase(TestCase):
 
         # Register first
         smokesignal.once('foo', cb)
-        assert len(smokesignal.receivers['foo']) == 1
+        assert len(smokesignal._receivers['foo']) == 1
 
         # Call twice
         smokesignal.emit('foo')

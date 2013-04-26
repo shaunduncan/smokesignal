@@ -6,14 +6,14 @@ from functools import wraps
 
 
 # Collection of receivers/callbacks
-receivers = defaultdict(set)
+_receivers = defaultdict(set)
 
 
 def emit(signal, *args, **kwargs):
     """
     Emits a signal to all registered callbacks
     """
-    for callback in receivers[signal]:
+    for callback in _receivers[signal]:
         callback(*args, **kwargs)
 
 
@@ -28,19 +28,15 @@ def on(signal, callback):
     """
     Registers a single callback for receiving an event emit
     """
-    if not callable(callback):
-        raise AssertionError('Signal callbacks must be callable')
-
-    receivers[signal].add(callback)
+    assert callable(callback), u'Signal callbacks must be callable'
+    _receivers[signal].add(callback)
 
 
 def once(signal, callback):
     """
     Registers a callback that will receive at most one event signal
     """
-    if not callable(callback):
-        raise AssertionError('Signal callbacks must be callable')
-
+    assert callable(callback), u'Signal callbacks must be callable'
     callback._called = False
 
     @wraps(callback)
@@ -52,23 +48,34 @@ def once(signal, callback):
     on(signal, wrapper)
 
 
-def disconnect(signal, callback):
+def disconnect(callback):
     """
-    Unregisters a callback from receiving events
+    Unregisters a callback from receiving any and all events
     """
-    receivers[signal].remove(callback)
+    # TODO: This is inefficient. Callbacks should be aware of their signals
+    for signal in _receivers:
+        if callback in _receivers[signal]:
+            disconnect_from(callback, signal)
+
+
+def disconnect_from(callback, *signals):
+    """
+    Unregisters a callback from receiving specified events
+    """
+    for signal in signals:
+        _receivers[signal].remove(callback)
 
 
 def clear(signal):
     """
     Clears all callbacks for a particular signal
     """
-    receivers[signal].clear()
+    _receivers[signal].clear()
 
 
 def clear_all():
     """
     Clears all callbacks for all signals
     """
-    for key in receivers.keys():
-        receivers[key].clear()
+    for key in _receivers.keys():
+        _receivers[key].clear()
