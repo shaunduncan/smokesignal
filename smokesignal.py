@@ -92,9 +92,14 @@ def disconnect_from(callback, *signals):
     """
     Unregisters a callback from receiving specified events
     """
+    # XXX: This is pretty inefficient and I should be able to quickly remove
+    # something without checking the entire receiver list
     for signal in signals:
-        print _receivers[signal]
-        _receivers[signal].remove(callback)
+        for check in _receivers[signal].copy():
+            if check == callback:
+                _receivers[signal].remove(callback)
+            elif callback == getattr(check, '__wrapped__', None):
+                _receivers[signal].remove(check)
 
 
 def clear(*signals):
