@@ -90,7 +90,7 @@ class SmokesignalTestCase(TestCase):
         assert len(smokesignal._receivers['foo']) == 1
 
         # Call a bunch of times
-        for x in xrange(5):
+        for x in range(10):
             smokesignal.emit('foo')
 
         assert cb.call_count == 3
@@ -126,7 +126,7 @@ class SmokesignalTestCase(TestCase):
         assert len(smokesignal._receivers['foo']) == 1
 
         # Call a bunch of times
-        for x in xrange(5):
+        for x in range(10):
             smokesignal.emit('foo')
 
         assert cb.call_count == 3

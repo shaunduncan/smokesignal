@@ -58,8 +58,7 @@ def _on(signals, callback, max_calls=None):
     Proxy for `smokesignal.on`, which is compatible as both a function call and
     a decorator. This method cannot be used as a decorator
     """
-    print signals, callback, max_calls
-    assert callable(callback), u'Signal callbacks must be callable'
+    assert callable(callback), 'Signal callbacks must be callable'
 
     # Support for lists of signals
     if not isinstance(signals, (list, tuple)):
