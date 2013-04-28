@@ -1,6 +1,8 @@
 smokesignal - simple python signaling
 ========================================
 
+[![Build Status](https://travis-ci.org/shaunduncan/smokesignal.png)](https://travis-ci.org/shaunduncan/smokesignal)
+
 `smokesignal` is a simple python library for sending and receiving signals.
 It draws some inspiration from the django signal framework but is meant as a
 general purpose variant.
