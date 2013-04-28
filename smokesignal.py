@@ -7,7 +7,7 @@ from collections import defaultdict
 from functools import partial, wraps
 
 
-__all__ = ['emit', 'signals', 'is_registered_for', 'on', 'once',
+__all__ = ['emit', 'signals', 'responds_to', 'on', 'once',
            'disconnect', 'disconnect_from', 'clear', 'clear_all']
 
 
@@ -34,10 +34,10 @@ def signals(callback):
     :param callback: A callable registered with smokesignal
     :returns: Tuple of all signals callback responds to
     """
-    return tuple(s for s in _receivers if is_registered_for(callback, s))
+    return tuple(s for s in _receivers if responds_to(callback, s))
 
 
-def is_registered_for(callback, signal):
+def responds_to(callback, signal):
     """
     Returns bool if callback will respond to a particular signal
 
