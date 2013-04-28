@@ -40,20 +40,23 @@ should respond to a signal with the `max_calls` keyword argument for `on`, or by
 the `once` method if all you need is for a callback to respond at most once.
 
 If you no longer wish for a callback to respond to any signals, you can use either
-`disconnect_from` if you intend on removing specific signals or `disconnect` if you intend
+`disconnect_from`, if you intend on removing specific signals, or `disconnect` if you intend
 to remove all of them:
 
     import smokesignal
 
+    # my_callback will no longer respond to signals
     smokesignal.disconnect(my_callback)
-    smokesignal.disconnect_from(my_callback, 'foo)
 
-Other batteries that some with `smokesignal.py` include:
+    # my_callback will no longer respond to 'foo', but may repond to others
+    smokesignal.disconnect_from(my_callback, 'foo')
 
-    # Remove all callbacks for a signal
+Other batteries included:
+
+    # Remove all callbacks responding to a specific signal
     smokesignal.clear('foo')
 
-    # Remove all callbacks for all signals
+    # Remove all callbacks responding to all signals
     smokesignal.clear_all()
 
     # Get a tuple of all signals a callback responds to
