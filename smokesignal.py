@@ -110,6 +110,8 @@ def _on(signals, callback, max_calls=None):
     for signal in signals:
         _receivers[signal].add(wrapper)
 
+    return wrapper
+
 
 def once(signals, callback=None):
     """

@@ -4,6 +4,7 @@ version = '0.0.1'
 setup(name='smokesignal',
       version=version,
       description=("Simple python event signaling"),
+      long_description=open('README.md').read(),
       classifiers=['Development Status :: 1 - Beta',
                    'Intended Audience :: Python Developers',
                    'License :: OSI Approved :: MIT License',
@@ -18,4 +19,5 @@ setup(name='smokesignal',
       download_url='https://github.com/shaunduncan/smokesignal/downloads',
       license='MIT',
       packages=find_packages(),
+      py_modules=['smokesignal'],
       )
