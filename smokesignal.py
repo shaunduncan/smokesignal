@@ -55,14 +55,15 @@ def on(signals, callback, max_calls=None):
     if not isinstance(signals, (list, tuple)):
         signals = [signals]
 
+    callback._max_calls = max_calls
+
     # Create a wrapper so we can ensure we limit number of calls
     @wraps(callback)
     def wrapper(*args, **kwargs):
-        if callback._max_calls is not None and callback._max_calls > 0:
-            callback._max_calls -= 1
+        if callback._max_calls is None or callback._max_calls > 0:
+            if callback._max_calls is not None:
+                callback._max_calls -= 1
             return callback(*args, **kwargs)
-
-    callback._max_calls = max_calls
 
     # Compatibility - Python >= 3.2 does this for us
     if _pyversion < (3, 2):
@@ -84,9 +85,7 @@ def disconnect(callback):
     Unregisters a callback from receiving any and all events
     """
     # TODO: This is inefficient. Callbacks should be aware of their signals
-    for signal in _receivers:
-        if callback in _receivers[signal]:
-            disconnect_from(callback, signal)
+    disconnect_from(callback, *[s for s in _receivers if is_registered_for(callback, s)])
 
 
 def disconnect_from(callback, *signals):
@@ -94,14 +93,16 @@ def disconnect_from(callback, *signals):
     Unregisters a callback from receiving specified events
     """
     for signal in signals:
+        print _receivers[signal]
         _receivers[signal].remove(callback)
 
 
-def clear(signal):
+def clear(*signals):
     """
     Clears all callbacks for a particular signal
     """
-    _receivers[signal].clear()
+    for signal in signals:
+        _receivers[signal].clear()
 
 
 def clear_all():

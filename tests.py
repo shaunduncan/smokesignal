@@ -23,6 +23,17 @@ class SmokesignalTestCase(TestCase):
         smokesignal.clear('foo')
         assert len(smokesignal._receivers['foo']) == 0
 
+    def test_clear_many(self):
+        smokesignal.on(('foo', 'bar', 'baz'), self.callback)
+        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal._receivers['bar']) == 1
+        assert len(smokesignal._receivers['baz']) == 1
+
+        smokesignal.clear('foo', 'bar')
+        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal._receivers['bar']) == 0
+        assert len(smokesignal._receivers['baz']) == 1
+
     def test_clear_all(self):
         smokesignal.on(('foo', 'bar'), self.callback)
         assert len(smokesignal._receivers['foo']) == 1
@@ -38,7 +49,7 @@ class SmokesignalTestCase(TestCase):
     def test_emit_with_callbacks(self):
         # Register first
         smokesignal.on('foo', self.mock_callback)
-        assert self.mock_callback in smokesignal._receivers['foo']
+        assert smokesignal.is_registered_for(self.mock_callback, 'foo')
 
         smokesignal.emit('foo')
         assert self.mock_callback.called
@@ -46,7 +57,7 @@ class SmokesignalTestCase(TestCase):
     def test_emit_with_callback_args(self):
         # Register first
         smokesignal.on('foo', self.mock_callback)
-        assert self.mock_callback in smokesignal._receivers['foo']
+        assert smokesignal.is_registered_for(self.mock_callback, 'foo')
 
         smokesignal.emit('foo', 1, 2, 3, foo='bar')
         assert self.mock_callback.called_with(1, 2, 3, foo='bar')
@@ -55,45 +66,50 @@ class SmokesignalTestCase(TestCase):
         self.assertRaises(AssertionError, smokesignal.on, 'foo', None)
 
     def test_on_registers(self):
+        assert len(smokesignal._receivers['foo']) == 0
         smokesignal.on('foo', self.callback)
-        assert self.callback in smokesignal._receivers['foo']
+        assert len(smokesignal._receivers['foo']) == 1
 
     def test_on_registers_many(self):
+        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal._receivers['bar']) == 0
+
         smokesignal.on(('foo', 'bar'), self.callback)
-        assert self.callback in smokesignal._receivers['foo']
-        assert self.callback in smokesignal._receivers['bar']
+
+        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal._receivers['bar']) == 1
 
     def test_disconnect(self):
         # Register first
         smokesignal.on(('foo', 'bar'), self.callback)
-        assert self.callback in smokesignal._receivers['foo']
-        assert self.callback in smokesignal._receivers['bar']
+        assert smokesignal.is_registered_for(self.callback, 'foo')
+        assert smokesignal.is_registered_for(self.callback, 'bar')
 
         smokesignal.disconnect(self.callback)
-        assert self.callback not in smokesignal._receivers['foo']
-        assert self.callback not in smokesignal._receivers['bar']
+        assert not smokesignal.is_registered_for(self.callback, 'foo')
+        assert not smokesignal.is_registered_for(self.callback, 'bar')
 
     def test_disconnect_from_removes_only_one(self):
         # Register first
         smokesignal.on(('foo', 'bar'), self.callback)
-        assert self.callback in smokesignal._receivers['foo']
-        assert self.callback in smokesignal._receivers['bar']
+        assert smokesignal.is_registered_for(self.callback, 'foo')
+        assert smokesignal.is_registered_for(self.callback, 'bar')
 
         # Remove it
         smokesignal.disconnect_from(self.callback, 'foo')
-        assert self.callback not in smokesignal._receivers['foo']
-        assert self.callback in smokesignal._receivers['bar']
+        assert not smokesignal.is_registered_for(self.callback, 'foo')
+        assert smokesignal.is_registered_for(self.callback, 'bar')
 
     def test_disconnect_from_removes_all(self):
         # Register first
         smokesignal.on(('foo', 'bar'), self.callback)
-        assert self.callback in smokesignal._receivers['foo']
-        assert self.callback in smokesignal._receivers['bar']
+        assert smokesignal.is_registered_for(self.callback, 'foo')
+        assert smokesignal.is_registered_for(self.callback, 'bar')
 
         # Remove it
         smokesignal.disconnect_from(self.callback, 'foo', 'bar')
-        assert self.callback not in smokesignal._receivers['foo']
-        assert self.callback not in smokesignal._receivers['bar']
+        assert not smokesignal.is_registered_for(self.callback, 'foo')
+        assert not smokesignal.is_registered_for(self.callback, 'bar')
 
     def test_signals(self):
         # Register first
