@@ -1,7 +1,7 @@
-smokesignal.py - simple python signaling
+smokesignal - simple python signaling
 ========================================
 
-`smokesignal.py` is a simple python library for sending and receiving signals.
+`smokesignal` is a simple python library for sending and receiving signals.
 It draws some inspiration from the django signal framework but is meant as a
 general purpose variant.
 
@@ -9,14 +9,14 @@ general purpose variant.
 Requirements & Compatibility
 ----------------------------
 
-`smokesignal.py` requires no dependencies outside of the python standard library.
+`smokesignal` requires no dependencies outside of the python standard library.
 It has been tested on and is compatible with python versions 2.6, 2.7, 3.2, and 3.3.
 
 
 How To Use
 ----------
 
-Most uses of `smokesignal.py` involve the functions `on`, which registers a single
+Most uses of `smokesignal` involve the functions `on`, which registers a single
 method to respond to a signal, and `emit`, which sends a signal. The `on` method can
 be used either as a decorator or as a plain function call:
 
@@ -69,7 +69,7 @@ Other batteries included:
 Known Issues/Caveats
 --------------------
 
-A major "nice to have" feature of `smokesignal.py` would be decorated instance methods.
+A major "nice to have" feature of `smokesignal` would be decorated instance methods.
 However, that doesn't work for the time being:
 
     import smokesignal
