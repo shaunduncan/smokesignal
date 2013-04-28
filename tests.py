@@ -63,7 +63,7 @@ class SmokesignalTestCase(TestCase):
         assert self.mock_callback.called_with(1, 2, 3, foo='bar')
 
     def test_on_raises(self):
-        self.assertRaises(AssertionError, smokesignal.on, 'foo', None)
+        self.assertRaises(AssertionError, smokesignal.on, 'foo', 'bar')
 
     def test_on_registers(self):
         assert len(smokesignal._receivers['foo']) == 0
@@ -78,6 +78,58 @@ class SmokesignalTestCase(TestCase):
 
         assert len(smokesignal._receivers['foo']) == 1
         assert len(smokesignal._receivers['bar']) == 1
+
+    def test_on_max_calls(self):
+        # Make a method that has a call count
+        def cb():
+            cb.call_count += 1
+        cb.call_count = 0
+
+        # Register first
+        smokesignal.on('foo', cb, max_calls=3)
+        assert len(smokesignal._receivers['foo']) == 1
+
+        # Call a bunch of times
+        for x in xrange(5):
+            smokesignal.emit('foo')
+
+        assert cb.call_count == 3
+
+    def test_on_decorator_registers(self):
+        assert len(smokesignal._receivers['foo']) == 0
+
+        @smokesignal.on('foo')
+        def my_callback():
+            pass
+
+        assert len(smokesignal._receivers['foo']) == 1
+
+    def test_on_decorator_registers_many(self):
+        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal._receivers['bar']) == 0
+
+        @smokesignal.on(('foo', 'bar'))
+        def my_callback():
+            pass
+
+        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal._receivers['bar']) == 1
+
+    def test_on_decorator_max_calls(self):
+        # Make a method that has a call count
+        def cb():
+            cb.call_count += 1
+        cb.call_count = 0
+
+        # Register first - like a cecorator
+        smokesignal.on('foo', max_calls=3)(cb)
+        assert len(smokesignal._receivers['foo']) == 1
+
+        # Call a bunch of times
+        for x in xrange(5):
+            smokesignal.emit('foo')
+
+        assert cb.call_count == 3
 
     def test_disconnect(self):
         # Register first
@@ -129,7 +181,7 @@ class SmokesignalTestCase(TestCase):
         assert smokesignal.is_registered_for(self.callback, 'bar') is False
 
     def test_once_raises(self):
-        self.assertRaises(AssertionError, smokesignal.once, 'foo', None)
+        self.assertRaises(AssertionError, smokesignal.once, 'foo', 'bar')
 
     def test_once(self):
         # Make a method that has a call count
@@ -139,6 +191,22 @@ class SmokesignalTestCase(TestCase):
 
         # Register first
         smokesignal.once('foo', cb)
+        assert len(smokesignal._receivers['foo']) == 1
+
+        # Call twice
+        smokesignal.emit('foo')
+        smokesignal.emit('foo')
+
+        assert cb.call_count == 1
+
+    def test_once_decorator(self):
+        # Make a method that has a call count
+        def cb():
+            cb.call_count += 1
+        cb.call_count = 0
+
+        # Register first like a decorator
+        smokesignal.once('foo')(cb)
         assert len(smokesignal._receivers['foo']) == 1
 
         # Call twice

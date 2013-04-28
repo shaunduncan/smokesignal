@@ -4,7 +4,7 @@ smokesignal.py - simple event signaling
 import sys
 
 from collections import defaultdict
-from functools import wraps
+from functools import partial, wraps
 
 
 # Collection of receivers/callbacks
@@ -37,18 +37,28 @@ def is_registered_for(callback, signal):
     return False
 
 
-# TODO: This should be a function decorator as well
-# so I can register a callback more easily:
-#
-# @smokesignal.on('foo')
-# def handle_foo():
-#     pass
-#
-def on(signals, callback, max_calls=None):
+def on(signals, callback=None, max_calls=None):
     """
     Registers a single callback for receiving an event (or event list). Optionally,
     can specify a maximum number of times the callback should receive a signal
     """
+    if isinstance(callback, int) or callback is None:
+        # Decorated
+        if isinstance(callback, int):
+            # Here the args were passed arg-style, not kwarg-style
+            callback, max_calls = max_calls, callback
+        return partial(_on, signals, max_calls=max_calls)
+    else:
+        # Function call
+        return _on(signals, callback, max_calls=max_calls)
+
+
+def _on(signals, callback, max_calls=None):
+    """
+    Proxy for `smokesignal.on`, which is compatible as both a function call and
+    a decorator. This method cannot be used as a decorator
+    """
+    print signals, callback, max_calls
     assert callable(callback), u'Signal callbacks must be callable'
 
     # Support for lists of signals
@@ -73,7 +83,7 @@ def on(signals, callback, max_calls=None):
         _receivers[signal].add(wrapper)
 
 
-def once(signals, callback):
+def once(signals, callback=None):
     """
     Registers a callback that will receive at most one event signal
     """
