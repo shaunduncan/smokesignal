@@ -11,6 +11,7 @@ class SmokesignalTestCase(TestCase):
     def setUp(self):
         self.callback = lambda x: x
         self.mock_callback = Mock()
+        self.mock_callback.__name__ = 'mock_callback'  # So decorators work
 
     def tearDown(self):
         smokesignal.clear_all()
@@ -23,8 +24,7 @@ class SmokesignalTestCase(TestCase):
         assert len(smokesignal._receivers['foo']) == 0
 
     def test_clear_all(self):
-        smokesignal.on('foo', self.callback)
-        smokesignal.on('bar', self.callback)
+        smokesignal.on(('foo', 'bar'), self.callback)
         assert len(smokesignal._receivers['foo']) == 1
         assert len(smokesignal._receivers['bar']) == 1
 
@@ -58,10 +58,14 @@ class SmokesignalTestCase(TestCase):
         smokesignal.on('foo', self.callback)
         assert self.callback in smokesignal._receivers['foo']
 
+    def test_on_registers_many(self):
+        smokesignal.on(('foo', 'bar'), self.callback)
+        assert self.callback in smokesignal._receivers['foo']
+        assert self.callback in smokesignal._receivers['bar']
+
     def test_disconnect(self):
         # Register first
-        smokesignal.on('foo', self.callback)
-        smokesignal.on('bar', self.callback)
+        smokesignal.on(('foo', 'bar'), self.callback)
         assert self.callback in smokesignal._receivers['foo']
         assert self.callback in smokesignal._receivers['bar']
 
@@ -71,8 +75,7 @@ class SmokesignalTestCase(TestCase):
 
     def test_disconnect_from_removes_only_one(self):
         # Register first
-        smokesignal.on('foo', self.callback)
-        smokesignal.on('bar', self.callback)
+        smokesignal.on(('foo', 'bar'), self.callback)
         assert self.callback in smokesignal._receivers['foo']
         assert self.callback in smokesignal._receivers['bar']
 
@@ -83,8 +86,7 @@ class SmokesignalTestCase(TestCase):
 
     def test_disconnect_from_removes_all(self):
         # Register first
-        smokesignal.on('foo', self.callback)
-        smokesignal.on('bar', self.callback)
+        smokesignal.on(('foo', 'bar'), self.callback)
         assert self.callback in smokesignal._receivers['foo']
         assert self.callback in smokesignal._receivers['bar']
 
@@ -95,8 +97,7 @@ class SmokesignalTestCase(TestCase):
 
     def test_signals(self):
         # Register first
-        smokesignal.on('foo', self.callback)
-        smokesignal.on('bar', self.callback)
+        smokesignal.on(('foo', 'bar'), self.callback)
 
         assert 'foo' in smokesignal.signals(self.callback)
         assert 'bar' in smokesignal.signals(self.callback)

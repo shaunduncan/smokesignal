@@ -1,12 +1,15 @@
 """
 smokesignal.py - simple event signaling
 """
+import sys
+
 from collections import defaultdict
 from functools import wraps
 
 
 # Collection of receivers/callbacks
 _receivers = defaultdict(set)
+_pyversion = sys.version_info[:2]
 
 
 def emit(signal, *args, **kwargs):
@@ -28,7 +31,10 @@ def is_registered_for(callback, signal):
     """
     Returns bool if callback will respond to a particular signal
     """
-    return callback in _receivers[signal]
+    for fn in _receivers[signal]:
+        if callback in (fn, getattr(fn, '__wrapped__', None)):
+            return True
+    return False
 
 
 # TODO: This should be a function decorator as well
@@ -38,28 +44,39 @@ def is_registered_for(callback, signal):
 # def handle_foo():
 #     pass
 #
-def on(signal, callback):
+def on(signals, callback, max_calls=None):
     """
-    Registers a single callback for receiving an event emit
+    Registers a single callback for receiving an event (or event list). Optionally,
+    can specify a maximum number of times the callback should receive a signal
     """
     assert callable(callback), u'Signal callbacks must be callable'
-    _receivers[signal].add(callback)
+
+    # Support for lists of signals
+    if not isinstance(signals, (list, tuple)):
+        signals = [signals]
+
+    # Create a wrapper so we can ensure we limit number of calls
+    @wraps(callback)
+    def wrapper(*args, **kwargs):
+        if callback._max_calls is not None and callback._max_calls > 0:
+            callback._max_calls -= 1
+            return callback(*args, **kwargs)
+
+    callback._max_calls = max_calls
+
+    # Compatibility - Python >= 3.2 does this for us
+    if _pyversion < (3, 2):
+        wrapper.__wrapped__ = callback
+
+    for signal in signals:
+        _receivers[signal].add(wrapper)
 
 
-def once(signal, callback):
+def once(signals, callback):
     """
     Registers a callback that will receive at most one event signal
     """
-    assert callable(callback), u'Signal callbacks must be callable'
-    callback._called = False
-
-    @wraps(callback)
-    def wrapper(*args, **kwargs):
-        if not callback._called:
-            callback._called = True
-            return callback(*args, **kwargs)
-
-    on(signal, wrapper)
+    return on(signals, callback, max_calls=1)
 
 
 def disconnect(callback):
