@@ -159,7 +159,7 @@ class SmokesignalTestCase(TestCase):
         assert smokesignal.is_registered_for(self.callback, 'bar')
 
         # Remove it
-        smokesignal.disconnect_from(self.callback, 'foo', 'bar')
+        smokesignal.disconnect_from(self.callback, ('foo', 'bar'))
         assert not smokesignal.is_registered_for(self.callback, 'foo')
         assert not smokesignal.is_registered_for(self.callback, 'bar')
 

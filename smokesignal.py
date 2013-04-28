@@ -7,6 +7,10 @@ from collections import defaultdict
 from functools import partial, wraps
 
 
+__all__ = ['emit', 'signals', 'is_registered_for', 'on', 'once',
+           'disconnect', 'disconnect_from', 'clear', 'clear_all']
+
+
 # Collection of receivers/callbacks
 _receivers = defaultdict(set)
 _pyversion = sys.version_info[:2]
@@ -14,7 +18,10 @@ _pyversion = sys.version_info[:2]
 
 def emit(signal, *args, **kwargs):
     """
-    Emits a signal to all registered callbacks
+    Emits a single signal to call callbacks registered to respond to that signal.
+    Optionally accepts args and kwargs that are passed directly to callbacks.
+
+    :param signal: Signal to send
     """
     for callback in _receivers[signal]:
         callback(*args, **kwargs)
@@ -23,13 +30,20 @@ def emit(signal, *args, **kwargs):
 def signals(callback):
     """
     Returns a tuple of all signals for a particular callback
+
+    :param callback: A callable registered with smokesignal
+    :returns: Tuple of all signals callback responds to
     """
-    return (s for s in _receivers if is_registered_for(callback, s))
+    return tuple(s for s in _receivers if is_registered_for(callback, s))
 
 
 def is_registered_for(callback, signal):
     """
     Returns bool if callback will respond to a particular signal
+
+    :param callback: A callable registered with smokesignal
+    :param signal: A signal to check if callback responds
+    :returns: True if callback responds to signal, False otherwise
     """
     for fn in _receivers[signal]:
         if callback in (fn, getattr(fn, '__wrapped__', None)):
@@ -40,7 +54,18 @@ def is_registered_for(callback, signal):
 def on(signals, callback=None, max_calls=None):
     """
     Registers a single callback for receiving an event (or event list). Optionally,
-    can specify a maximum number of times the callback should receive a signal
+    can specify a maximum number of times the callback should receive a signal. This
+    method works as both a function and a decorator::
+
+        smokesignal.on('foo', my_callback)
+
+        @smokesignal.on('foo')
+        def my_callback():
+            pass
+
+    :param signals: A single signal or list/tuple of signals that callback should respond to
+    :param callback: A callable that should repond to supplied signal(s)
+    :param max_calls: Integer maximum calls for callback. None for no limit.
     """
     if isinstance(callback, int) or callback is None:
         # Decorated
@@ -57,6 +82,10 @@ def _on(signals, callback, max_calls=None):
     """
     Proxy for `smokesignal.on`, which is compatible as both a function call and
     a decorator. This method cannot be used as a decorator
+
+    :param signals: A single signal or list/tuple of signals that callback should respond to
+    :param callback: A callable that should repond to supplied signal(s)
+    :param max_calls: Integer maximum calls for callback. None for no limit.
     """
     assert callable(callback), 'Signal callbacks must be callable'
 
@@ -84,23 +113,37 @@ def _on(signals, callback, max_calls=None):
 
 def once(signals, callback=None):
     """
-    Registers a callback that will receive at most one event signal
+    Registers a callback that will respond to an event at most one time
+
+    :param signals: A single signal or list/tuple of signals that callback should respond to
+    :param callback: A callable that should repond to supplied signal(s)
     """
     return on(signals, callback, max_calls=1)
 
 
 def disconnect(callback):
     """
-    Unregisters a callback from receiving any and all events
+    Removes a callback from all signal registries and prevents it from responding
+    to any emitted signal.
+
+    :param callback: A callable registered with smokesignal
     """
-    # TODO: This is inefficient. Callbacks should be aware of their signals
-    disconnect_from(callback, *[s for s in _receivers if is_registered_for(callback, s)])
+    # XXX: This is inefficient. Callbacks should be aware of their signals
+    disconnect_from(callback, signals(callback))
 
 
-def disconnect_from(callback, *signals):
+def disconnect_from(callback, signals):
     """
-    Unregisters a callback from receiving specified events
+    Removes a callback from specified signal registries and prevents it from responding
+    to any emitted signal.
+
+    :param callback: A callable registered with smokesignal
+    :param signals: A single signal or list/tuple of signals
     """
+    # Support for lists of signals
+    if not isinstance(signals, (list, tuple)):
+        signals = [signals]
+
     # XXX: This is pretty inefficient and I should be able to quickly remove
     # something without checking the entire receiver list
     for signal in signals:
@@ -113,7 +156,7 @@ def disconnect_from(callback, *signals):
 
 def clear(*signals):
     """
-    Clears all callbacks for a particular signal
+    Clears all callbacks for a particular signal or signals
     """
     for signal in signals:
         _receivers[signal].clear()
