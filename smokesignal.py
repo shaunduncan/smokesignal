@@ -7,7 +7,7 @@ from collections import defaultdict
 from functools import partial
 
 
-__all__ = ['emit', 'signals', 'responds_to', 'on', 'once',
+__all__ = ['emit', 'emitting', 'signals', 'responds_to', 'on', 'once',
            'disconnect', 'disconnect_from', 'clear', 'clear_all']
 
 
@@ -25,6 +25,24 @@ def emit(signal, *args, **kwargs):
     """
     for callback in _receivers[signal]:
         _call(callback, args=args, kwargs=kwargs)
+
+
+class emitting(object):
+    """
+    Context manager for emitting signals either on enter or on exit of a context.
+    By default, if this context manager is created using a single arg-style argument,
+    it will emit a signal on exit. Otherwise, keyword arguments indicate signal points
+    """
+    def __init__(self, exit, enter=None):
+        self.exit = exit
+        self.enter = enter
+
+    def __enter__(self):
+        if self.enter is not None:
+            emit(self.enter)
+
+    def __exit__(self, exc_type, exc_value, tb):
+        emit(self.exit)
 
 
 def _call(callback, args=[], kwargs={}):

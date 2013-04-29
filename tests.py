@@ -1,7 +1,7 @@
 """ Unit tests """
 from unittest import TestCase
 
-from mock import Mock
+from mock import Mock, patch
 
 import smokesignal
 
@@ -234,3 +234,17 @@ class SmokesignalTestCase(TestCase):
         smokesignal.emit('foo')
 
         assert cb.call_count == 1
+
+    @patch('smokesignal.emit')
+    def test_emitting_arg_style(self, emit):
+        with smokesignal.emitting('foo'):
+            pass
+
+        assert emit.call_count == 1
+
+    @patch('smokesignal.emit')
+    def test_emitting_kwarg_style(self, emit):
+        with smokesignal.emitting(enter='foo', exit='bar'):
+            pass
+
+        assert emit.call_count == 2
