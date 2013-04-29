@@ -4,7 +4,7 @@ smokesignal.py - simple event signaling
 import sys
 
 from collections import defaultdict
-from functools import partial, wraps
+from functools import partial
 
 
 __all__ = ['emit', 'signals', 'responds_to', 'on', 'once',
@@ -24,7 +24,24 @@ def emit(signal, *args, **kwargs):
     :param signal: Signal to send
     """
     for callback in _receivers[signal]:
-        callback(*args, **kwargs)
+        _call(callback, args=args, kwargs=kwargs)
+
+
+def _call(callback, args=[], kwargs={}):
+    """
+    Calls a callback with optional args and keyword args lists. This method exists so
+    we can inspect the `_max_calls` attribute that's set by `_on`. If this value is None,
+    the callback is considered to have no limit. Otherwise, an integer value is expected
+    and decremented until there are no remaining calls
+    """
+    if not hasattr(callback, '_max_calls'):
+        callback._max_calls = None
+
+    if callback._max_calls is None or callback._max_calls > 0:
+        if callback._max_calls is not None:
+            callback._max_calls -= 1
+
+        return callback(*args, **kwargs)
 
 
 def signals(callback):
@@ -45,10 +62,7 @@ def responds_to(callback, signal):
     :param signal: A signal to check if callback responds
     :returns: True if callback responds to signal, False otherwise
     """
-    for fn in _receivers[signal]:
-        if callback in (fn, getattr(fn, '__wrapped__', None)):
-            return True
-    return False
+    return callback in _receivers[signal]
 
 
 def on(signals, callback=None, max_calls=None):
@@ -95,22 +109,10 @@ def _on(signals, callback, max_calls=None):
 
     callback._max_calls = max_calls
 
-    # Create a wrapper so we can ensure we limit number of calls
-    @wraps(callback)
-    def wrapper(*args, **kwargs):
-        if callback._max_calls is None or callback._max_calls > 0:
-            if callback._max_calls is not None:
-                callback._max_calls -= 1
-            return callback(*args, **kwargs)
-
-    # Compatibility - Python >= 3.2 does this for us
-    if _pyversion < (3, 2):
-        wrapper.__wrapped__ = callback
-
     for signal in signals:
-        _receivers[signal].add(wrapper)
+        _receivers[signal].add(callback)
 
-    return wrapper
+    return callback
 
 
 def once(signals, callback=None):
@@ -130,8 +132,11 @@ def disconnect(callback):
 
     :param callback: A callable registered with smokesignal
     """
-    # XXX: This is inefficient. Callbacks should be aware of their signals
-    disconnect_from(callback, signals(callback))
+    # This is basically what `disconnect_from` does, but that method guards against
+    # callbacks not responding to signal arguments. We don't need that because we're
+    # disconnecting all the valid ones here
+    for signal in signals(callback):
+        _receivers[signal].remove(callback)
 
 
 def disconnect_from(callback, signals):
@@ -146,14 +151,10 @@ def disconnect_from(callback, signals):
     if not isinstance(signals, (list, tuple)):
         signals = [signals]
 
-    # XXX: This is pretty inefficient and I should be able to quickly remove
-    # something without checking the entire receiver list
+    # Remove callback from receiver list if it responds to the signal
     for signal in signals:
-        for check in _receivers[signal].copy():
-            if check == callback:
-                _receivers[signal].remove(callback)
-            elif callback == getattr(check, '__wrapped__', None):
-                _receivers[signal].remove(check)
+        if responds_to(callback, signal):
+            _receivers[signal].remove(callback)
 
 
 def clear(*signals):

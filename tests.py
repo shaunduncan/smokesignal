@@ -11,10 +11,30 @@ class SmokesignalTestCase(TestCase):
     def setUp(self):
         self.callback = lambda x: x
         self.mock_callback = Mock()
-        self.mock_callback.__name__ = 'mock_callback'  # So decorators work
 
     def tearDown(self):
         smokesignal.clear_all()
+
+    def test_call_no_max_calls(self):
+        def foo():
+            foo.call_count += 1
+        foo.call_count = 0
+
+        for x in range(5):
+            smokesignal._call(foo)
+
+        assert foo.call_count == 5
+
+    def test_call_with_max_calls(self):
+        def foo():
+            foo.call_count += 1
+        foo.call_count = 0
+        foo._max_calls = 1
+
+        for x in range(5):
+            smokesignal._call(foo)
+
+        assert foo.call_count == 1
 
     def test_clear(self):
         smokesignal.on('foo', self.callback)
