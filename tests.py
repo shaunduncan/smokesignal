@@ -263,4 +263,5 @@ class SmokesignalTestCase(TestCase):
         smokesignal.on(('foo', 'bar'), self.callback)
 
         assert hasattr(self.callback, 'signals')
-        assert self.callback.signals() == ('foo', 'bar')
+        assert 'foo' in self.callback.signals()
+        assert 'bar' in self.callback.signals()
