@@ -248,3 +248,11 @@ class SmokesignalTestCase(TestCase):
             pass
 
         assert emit.call_count == 2
+
+    def test_register_callback_creates_responds_to_fn(self):
+        # Registering a callback should create partials to smokesignal
+        # methods for later user
+        smokesignal.on('foo', self.callback)
+
+        assert hasattr(self.callback, 'responds_to')
+        assert self.callback.responds_to('foo')

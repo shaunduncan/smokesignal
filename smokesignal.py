@@ -130,6 +130,10 @@ def _on(signals, callback, max_calls=None):
     for signal in signals:
         _receivers[signal].add(callback)
 
+    # Setup partials for use later
+    if not hasattr(callback, 'responds_to'):
+        callback.responds_to = partial(responds_to, callback)
+
     return callback
 
 
