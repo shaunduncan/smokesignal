@@ -4,6 +4,9 @@ python:
   - 2.7
   - 3.2
   - 3.3
+branches:
+  only:
+    - master
 before_install:
   - pip install pytest mock
 script: py.test tests.py
