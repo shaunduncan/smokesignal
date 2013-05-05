@@ -43,6 +43,18 @@ class SmokesignalTestCase(TestCase):
         smokesignal.clear('foo')
         assert len(smokesignal._receivers['foo']) == 0
 
+    def test_clear_no_args_clears_all(self):
+        smokesignal.on(('foo', 'bar', 'baz'), self.callback)
+        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal._receivers['bar']) == 1
+        assert len(smokesignal._receivers['baz']) == 1
+
+        smokesignal.clear()
+        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal._receivers['bar']) == 0
+        assert len(smokesignal._receivers['baz']) == 0
+
+
     def test_clear_many(self):
         smokesignal.on(('foo', 'bar', 'baz'), self.callback)
         assert len(smokesignal._receivers['foo']) == 1

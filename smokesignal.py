@@ -188,6 +188,8 @@ def clear(*signals):
     """
     Clears all callbacks for a particular signal or signals
     """
+    signals = signals if signals else _receivers.keys()
+
     for signal in signals:
         _receivers[signal].clear()
 
