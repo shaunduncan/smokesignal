@@ -43,6 +43,18 @@ class SmokesignalTestCase(TestCase):
         smokesignal.clear('foo')
         assert len(smokesignal._receivers['foo']) == 0
 
+    def test_clear_no_args_clears_all(self):
+        smokesignal.on(('foo', 'bar', 'baz'), self.callback)
+        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal._receivers['bar']) == 1
+        assert len(smokesignal._receivers['baz']) == 1
+
+        smokesignal.clear()
+        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal._receivers['bar']) == 0
+        assert len(smokesignal._receivers['baz']) == 0
+
+
     def test_clear_many(self):
         smokesignal.on(('foo', 'bar', 'baz'), self.callback)
         assert len(smokesignal._receivers['foo']) == 1
@@ -248,3 +260,20 @@ class SmokesignalTestCase(TestCase):
             pass
 
         assert emit.call_count == 2
+
+    def test_on_creates_responds_to_fn(self):
+        # Registering a callback should create partials to smokesignal
+        # methods for later user
+        smokesignal.on('foo', self.callback)
+
+        assert hasattr(self.callback, 'responds_to')
+        assert self.callback.responds_to('foo')
+
+    def test_on_creates_signals_fn(self):
+        # Registering a callback should create partials to smokesignal
+        # methods for later user
+        smokesignal.on(('foo', 'bar'), self.callback)
+
+        assert hasattr(self.callback, 'signals')
+        assert 'foo' in self.callback.signals()
+        assert 'bar' in self.callback.signals()

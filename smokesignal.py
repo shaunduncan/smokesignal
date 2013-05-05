@@ -110,7 +110,7 @@ def on(signals, callback=None, max_calls=None):
         return _on(signals, callback, max_calls=max_calls)
 
 
-def _on(signals, callback, max_calls=None):
+def _on(on_signals, callback, max_calls=None):
     """
     Proxy for `smokesignal.on`, which is compatible as both a function call and
     a decorator. This method cannot be used as a decorator
@@ -122,13 +122,22 @@ def _on(signals, callback, max_calls=None):
     assert callable(callback), 'Signal callbacks must be callable'
 
     # Support for lists of signals
-    if not isinstance(signals, (list, tuple)):
-        signals = [signals]
+    if not isinstance(on_signals, (list, tuple)):
+        on_signals = [on_signals]
 
     callback._max_calls = max_calls
 
-    for signal in signals:
+    # Register the callback
+    for signal in on_signals:
         _receivers[signal].add(callback)
+
+    # Setup responds_to partial for use later
+    if not hasattr(callback, 'responds_to'):
+        callback.responds_to = partial(responds_to, callback)
+
+    # Setup signals partial for use later.
+    if not hasattr(callback, 'signals'):
+        callback.signals = partial(signals, callback)
 
     return callback
 
@@ -179,6 +188,8 @@ def clear(*signals):
     """
     Clears all callbacks for a particular signal or signals
     """
+    signals = signals if signals else _receivers.keys()
+
     for signal in signals:
         _receivers[signal].clear()
 
