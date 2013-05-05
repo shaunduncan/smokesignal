@@ -76,7 +76,7 @@ import smokesignal
 with smokesignal.emitting('foo'):
     pass
 
-# 'foo' emitting on enter, 'bar' emitted on exit
+# 'foo' emitted on enter, 'bar' emitted on exit
 with smokesignal.emitting(enter='foo', exit='bar'):
     pass
 ```
@@ -99,18 +99,35 @@ smokesignal.disconnect_from(my_callback, 'foo')
 
 ### Other Batteries Included
 
+
+You can clear large swaths of callbacks using either `clear` or `clear_all`.
+If you call `clear` without any arguments, it effectively works like `clear_all`:
+
 ```python
 # Remove all callbacks responding to a specific signal
 smokesignal.clear('foo')
 
 # Remove all callbacks responding to all signals
 smokesignal.clear_all()
+smokesignal.clear()
+```
 
+Sometimes you may want to get a list of signals a callback responds to or quickly
+check if a callback will respond to a certain signal. The `signals` and `responds_to`
+are available for this purpose. Note that registering a callback to respond to a
+signal will also create callable attributes of the callback for easier interaction
+with these methods:
+
+```python
 # Get a tuple of all signals a callback responds to
 smokesignal.signals(my_callback)
 
 # Check if a callback responds to a signal
 smokesignal.responds_to(my_callback, 'foo')
+
+# Or as attributes of the callback
+my_callback.signals()
+my_callback.responds_to('foo')
 ```
 
 
@@ -152,6 +169,10 @@ also ensure that the _intended_ callback method is called correctly.
 
 
 ## Changelog
+
+### 0.3
+- Callbacks now have callable attributes `responds_to` and `signals`
+- Calling `clear` with no arguments will clear all callbacks for all signals
 
 ### 0.2
 - Added `emitting` context manager
