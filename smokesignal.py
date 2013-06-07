@@ -203,27 +203,7 @@ def clear_all():
         _receivers[key].clear()
 
 
-def emitter(signal, enter=None):
-    """Creates a reusable single signal emitter object that can be called as follows:
-
-    my_signal = smokesignal.emitter('foo')
-    my_signal.emit()  # emits the 'foo' signal
-
-    Additionally, it can be used as a context manager:
-
-    with my_emitter.emitting:
-    ...do_something_cool()
-
-    Note that your signal sent to emitter construction becomes exit.
-
-    :param signal: A signal name to call on emit() or on __exit__() if used as a context manager.
-    :param enter: A signal name to call on __enter__() if being used as a context manager.
-    :return: EmitterObject
-    """
-    return EmitterObject(signal, enter=enter)
-
-
-class EmitterObject(object):
+class emitter(object):
     """
     The emitter object allows for a reusable single-signal emitter. The smokesignal signal name is stored. When emit is
     called, smokesignal calls the stored signal name. It is also capable of being used as a context manager just like
@@ -231,6 +211,22 @@ class EmitterObject(object):
     """
 
     def __init__(self, signal, enter=None):
+        """Creates a reusable single signal emitter object that can be called as follows:
+
+        my_signal = smokesignal.emitter('foo')
+        my_signal.emit()  # emits the 'foo' signal
+
+        Additionally, it can be used as a context manager:
+
+        with my_emitter.emitting:
+        ...do_something_cool()
+
+        Note that your signal sent to emitter construction becomes exit.
+
+        :param signal: A signal name to call on emit() or on __exit__() if used as a context manager.
+        :param enter: A signal name to call on __enter__() if being used as a context manager.
+        :return: EmitterObject
+        """
         self.signal = signal
         self.enter = enter
 

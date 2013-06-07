@@ -81,7 +81,7 @@ with smokesignal.emitting(enter='foo', exit='bar'):
     pass
 ```
 
-# Reusable Single-signal Emitters
+### Reusable Single-signal Emitters
 
 The emitter object allows for a reusable single-signal emitter. The smokesignal signal name is stored. When emit is
 called, smokesignal calls the stored signal name.
@@ -94,7 +94,7 @@ my_emitter = emitter('foo')
 my_emitter.emit() # calls the stored signal 'foo'.
 ```
 
-# Emitter with Context
+#### Emitter with Context
 
 Emitters are also capable of being used as a context manager just like smokesignal.emitting. The stored signal is
 called on exit.
