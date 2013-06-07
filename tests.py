@@ -7,7 +7,6 @@ import smokesignal
 
 
 class SmokesignalTestCase(TestCase):
-
     def setUp(self):
         self.callback = lambda x: x
         self.mock_callback = Mock()
@@ -18,6 +17,7 @@ class SmokesignalTestCase(TestCase):
     def test_call_no_max_calls(self):
         def foo():
             foo.call_count += 1
+
         foo.call_count = 0
 
         for x in range(5):
@@ -28,6 +28,7 @@ class SmokesignalTestCase(TestCase):
     def test_call_with_max_calls(self):
         def foo():
             foo.call_count += 1
+
         foo.call_count = 0
         foo._max_calls = 1
 
@@ -53,7 +54,6 @@ class SmokesignalTestCase(TestCase):
         assert len(smokesignal._receivers['foo']) == 0
         assert len(smokesignal._receivers['bar']) == 0
         assert len(smokesignal._receivers['baz']) == 0
-
 
     def test_clear_many(self):
         smokesignal.on(('foo', 'bar', 'baz'), self.callback)
@@ -115,6 +115,7 @@ class SmokesignalTestCase(TestCase):
         # Make a method that has a call count
         def cb():
             cb.call_count += 1
+
         cb.call_count = 0
 
         # Register first
@@ -151,6 +152,7 @@ class SmokesignalTestCase(TestCase):
         # Make a method that has a call count
         def cb():
             cb.call_count += 1
+
         cb.call_count = 0
 
         # Register first - like a cecorator
@@ -219,6 +221,7 @@ class SmokesignalTestCase(TestCase):
         # Make a method that has a call count
         def cb():
             cb.call_count += 1
+
         cb.call_count = 0
 
         # Register first
@@ -235,6 +238,7 @@ class SmokesignalTestCase(TestCase):
         # Make a method that has a call count
         def cb():
             cb.call_count += 1
+
         cb.call_count = 0
 
         # Register first like a decorator
@@ -277,3 +281,64 @@ class SmokesignalTestCase(TestCase):
         assert hasattr(self.callback, 'signals')
         assert 'foo' in self.callback.signals()
         assert 'bar' in self.callback.signals()
+
+    def test_create_emitter_does_not_call(self):
+        # Creating an emitter should not call the signal yet
+        smokesignal.on('foo', self.mock_callback)
+
+        # create an emitter object
+        my_unlit_signal_emitter = smokesignal.emitter('foo')
+
+        assert self.mock_callback.call_count == 0
+
+    def test_call_emitter_does_call(self):
+        # Calling emit on an emitter should call
+        smokesignal.on('foo', self.mock_callback)
+
+        # create an emitter object
+        my_unlit_signal_emitter = smokesignal.emitter('foo')
+
+        # call the emitter (light the beacon!)
+        my_unlit_signal_emitter.emit()
+
+        assert self.mock_callback.call_count == 1
+
+    def test_call_emitter_does_call_with_args(self):
+        # Calling emit on an emitter with args should call with args
+        smokesignal.on('foo', self.mock_callback)
+
+        # create an emitter object
+        my_unlit_signal_emitter = smokesignal.emitter('foo')
+
+        # call the emitter with some args
+        my_unlit_signal_emitter.emit('foo', 1, 2, 3, foo='bar')
+
+        assert self.mock_callback.called_with(1, 2, 3, foo='bar')
+
+    @patch('smokesignal.emit')
+    def test_emitter_with_context(self, emit):
+        # Emitter with context should call enter and exit
+        smokesignal.on('foo', self.mock_callback)
+        smokesignal.on('bar', self.mock_callback)
+
+        # create an emitter object
+        my_unlit_signal_emitter = smokesignal.emitter('foo', enter='bar')
+
+        with my_unlit_signal_emitter.emitting():
+            pass
+
+        assert emit.call_count == 2
+
+    @patch('smokesignal.emit')
+    def test_emitter_with_context_impromptu_enter_arg(self, emit):
+        # Emitter with context should call enter passed in as arg exit
+        smokesignal.on('foo', self.mock_callback)
+        smokesignal.on('bar', self.mock_callback)
+
+        # create an emitter object
+        my_unlit_signal_emitter = smokesignal.emitter('foo')
+
+        with my_unlit_signal_emitter.emitting(enter='bar'):
+            pass
+
+        assert emit.call_count == 2

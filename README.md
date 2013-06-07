@@ -81,6 +81,47 @@ with smokesignal.emitting(enter='foo', exit='bar'):
     pass
 ```
 
+### Reusable Single-signal Emitters
+
+The emitter object allows for a reusable single-signal emitter. The smokesignal signal name is stored. When emit is
+called, smokesignal calls the stored signal name.
+
+```python
+import smokesignal
+
+my_emitter = emitter('foo')
+
+my_emitter.emit() # calls the stored signal 'foo'.
+```
+
+#### Emitter with Context
+
+Emitters are also capable of being used as a context manager just like smokesignal.emitting. The stored signal is
+called on exit.
+
+```python
+import smokesignal
+
+my_emitter = emitter('foo')
+
+with my_emitter.emitting:
+    do_work()
+    # callbacks for signal 'foo' are called.
+```
+
+Need an enter signal called?
+
+```python
+import smokesignal
+
+my_emitter = emitter('foo', enter='bar')
+
+with my_emitter.emitting:
+    # Enter: callbacks for signal 'bar' are called
+    do_work()
+    # Enter: callbacks for signal 'foo' are called
+```
+
 ### Disconnecting Callbacks
 
 If you no longer wish for a callback to respond to any signals, you can use either
