@@ -33,6 +33,7 @@ class emitting(object):
     By default, if this context manager is created using a single arg-style argument,
     it will emit a signal on exit. Otherwise, keyword arguments indicate signal points
     """
+
     def __init__(self, exit, enter=None):
         self.exit = exit
         self.enter = enter
@@ -200,3 +201,42 @@ def clear_all():
     """
     for key in _receivers.keys():
         _receivers[key].clear()
+
+
+class emitter(object):
+    """
+    The emitter object allows for a reusable single-signal emitter. The smokesignal signal name is stored. When emit is
+    called, smokesignal calls the stored signal name. It is also capable of being used as a context manager just like
+    smokesignal.emitting.
+    """
+
+    def __init__(self, signal, enter=None):
+        """Creates a reusable single signal emitter object that can be called as follows:
+
+        my_signal = smokesignal.emitter('foo')
+        my_signal.emit()  # emits the 'foo' signal
+
+        Additionally, it can be used as a context manager:
+
+        with my_emitter.emitting:
+        ...do_something_cool()
+
+        Note that your signal sent to emitter construction becomes exit.
+
+        :param signal: A signal name to call on emit() or on __exit__() if used as a context manager.
+        :param enter: A signal name to call on __enter__() if being used as a context manager.
+        :return: EmitterObject
+        """
+        self.signal = signal
+        self.enter = enter
+
+        self.emit = self._emit
+        self.emitting = self._emitting
+
+    def _emitting(self, enter=None):
+        if enter is None:
+            enter = self.enter
+        return emitting(exit=self.signal, enter=enter)
+
+    def _emit(self, *args, **kwargs):
+        emit(self.signal, *args, **kwargs)
