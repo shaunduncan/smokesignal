@@ -23,7 +23,7 @@ def emit(signal, *args, **kwargs):
 
     :param signal: Signal to send
     """
-    for callback in _receivers[signal]:
+    for callback in set(_receivers[signal]):  # Make a copy in case of any ninja signals
         _call(callback, args=args, kwargs=kwargs)
 
 
