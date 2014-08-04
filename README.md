@@ -155,9 +155,7 @@ import smokesignal
 
 class Foo(object):
     def __init__(self, *args, **kwargs):
-        @smokesignal.on('bar')
-        def _callback():
-            self.callback()
+        smokesignal.on('bar', self.callback)
         super(Foo, self).__init__(*args, **kwargs)
 
     def callback(self):
