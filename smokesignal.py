@@ -2,6 +2,7 @@
 smokesignal.py - simple event signaling
 """
 import sys
+import types
 
 from collections import defaultdict
 from functools import partial
@@ -105,6 +106,11 @@ def on(signals, callback=None, max_calls=None):
             # Here the args were passed arg-style, not kwarg-style
             callback, max_calls = max_calls, callback
         return partial(_on, signals, max_calls=max_calls)
+    elif isinstance(callback, types.MethodType):
+        # callback is a bound instance method, so we need to wrap it in a function
+        def _callback(*args, **kwargs):
+            return callback(*args, **kwargs)
+        return _on(signals, _callback, max_calls=max_calls)
     else:
         # Function call
         return _on(signals, callback, max_calls=max_calls)

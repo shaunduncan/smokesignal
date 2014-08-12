@@ -277,3 +277,59 @@ class SmokesignalTestCase(TestCase):
         assert hasattr(self.callback, 'signals')
         assert 'foo' in self.callback.signals()
         assert 'bar' in self.callback.signals()
+
+    def test_instance_method(self):
+        class Foo(object):
+            def __init__(self):
+                # Preferred way
+                smokesignal.on('foo', self.foo)
+
+                # Old way
+                @smokesignal.on('foo')
+                def _bar():
+                    self.bar()
+
+                self.foo_count = 0
+                self.bar_count = 0
+
+            def foo(self):
+                self.foo_count += 1
+
+            def bar(self):
+                self.bar_count += 1
+
+        foo = Foo()
+        smokesignal.emit('foo')
+        smokesignal.emit('bar')
+        assert foo.foo_count == 1
+        assert foo.bar_count == 1
+
+    def test_instance_method_passes_args_kwargs(self):
+        class Foo(object):
+            def __init__(self):
+                smokesignal.on('foo', self.foo)
+                self.foo_count = 0
+
+            def foo(self, n, mult=1):
+                self.foo_count += (n * mult)
+
+        foo = Foo()
+        smokesignal.emit('foo', 5, mult=6)
+        assert foo.foo_count == 30
+
+    def test_instance_method_max_calls(self):
+        class Foo(object):
+            def __init__(self):
+                smokesignal.once('foo', self.foo)
+                self.foo_count = 0
+
+            def foo(self):
+                self.foo_count += 1
+
+        foo = Foo()
+        smokesignal.emit('foo')
+        smokesignal.emit('foo')
+        smokesignal.emit('foo')
+        smokesignal.emit('foo')
+        smokesignal.emit('foo')
+        assert foo.foo_count == 1
