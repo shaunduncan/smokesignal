@@ -38,42 +38,42 @@ class SmokesignalTestCase(TestCase):
 
     def test_clear(self):
         smokesignal.on('foo', self.callback)
-        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
 
         smokesignal.clear('foo')
-        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal.receivers['foo']) == 0
 
     def test_clear_no_args_clears_all(self):
         smokesignal.on(('foo', 'bar', 'baz'), self.callback)
-        assert len(smokesignal._receivers['foo']) == 1
-        assert len(smokesignal._receivers['bar']) == 1
-        assert len(smokesignal._receivers['baz']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
+        assert len(smokesignal.receivers['bar']) == 1
+        assert len(smokesignal.receivers['baz']) == 1
 
         smokesignal.clear()
-        assert len(smokesignal._receivers['foo']) == 0
-        assert len(smokesignal._receivers['bar']) == 0
-        assert len(smokesignal._receivers['baz']) == 0
+        assert len(smokesignal.receivers['foo']) == 0
+        assert len(smokesignal.receivers['bar']) == 0
+        assert len(smokesignal.receivers['baz']) == 0
 
 
     def test_clear_many(self):
         smokesignal.on(('foo', 'bar', 'baz'), self.callback)
-        assert len(smokesignal._receivers['foo']) == 1
-        assert len(smokesignal._receivers['bar']) == 1
-        assert len(smokesignal._receivers['baz']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
+        assert len(smokesignal.receivers['bar']) == 1
+        assert len(smokesignal.receivers['baz']) == 1
 
         smokesignal.clear('foo', 'bar')
-        assert len(smokesignal._receivers['foo']) == 0
-        assert len(smokesignal._receivers['bar']) == 0
-        assert len(smokesignal._receivers['baz']) == 1
+        assert len(smokesignal.receivers['foo']) == 0
+        assert len(smokesignal.receivers['bar']) == 0
+        assert len(smokesignal.receivers['baz']) == 1
 
     def test_clear_all(self):
         smokesignal.on(('foo', 'bar'), self.callback)
-        assert len(smokesignal._receivers['foo']) == 1
-        assert len(smokesignal._receivers['bar']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
+        assert len(smokesignal.receivers['bar']) == 1
 
         smokesignal.clear_all()
-        assert len(smokesignal._receivers['foo']) == 0
-        assert len(smokesignal._receivers['bar']) == 0
+        assert len(smokesignal.receivers['foo']) == 0
+        assert len(smokesignal.receivers['bar']) == 0
 
     def test_emit_with_no_callbacks(self):
         smokesignal.emit('foo')
@@ -98,18 +98,18 @@ class SmokesignalTestCase(TestCase):
         self.assertRaises(AssertionError, smokesignal.on, 'foo', 'bar')
 
     def test_on_registers(self):
-        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal.receivers['foo']) == 0
         smokesignal.on('foo', self.callback)
-        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
 
     def test_on_registers_many(self):
-        assert len(smokesignal._receivers['foo']) == 0
-        assert len(smokesignal._receivers['bar']) == 0
+        assert len(smokesignal.receivers['foo']) == 0
+        assert len(smokesignal.receivers['bar']) == 0
 
         smokesignal.on(('foo', 'bar'), self.callback)
 
-        assert len(smokesignal._receivers['foo']) == 1
-        assert len(smokesignal._receivers['bar']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
+        assert len(smokesignal.receivers['bar']) == 1
 
     def test_on_max_calls(self):
         # Make a method that has a call count
@@ -119,7 +119,7 @@ class SmokesignalTestCase(TestCase):
 
         # Register first
         smokesignal.on('foo', cb, max_calls=3)
-        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
 
         # Call a bunch of times
         for x in range(10):
@@ -128,24 +128,24 @@ class SmokesignalTestCase(TestCase):
         assert cb.call_count == 3
 
     def test_on_decorator_registers(self):
-        assert len(smokesignal._receivers['foo']) == 0
+        assert len(smokesignal.receivers['foo']) == 0
 
         @smokesignal.on('foo')
         def my_callback():
             pass
 
-        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
 
     def test_on_decorator_registers_many(self):
-        assert len(smokesignal._receivers['foo']) == 0
-        assert len(smokesignal._receivers['bar']) == 0
+        assert len(smokesignal.receivers['foo']) == 0
+        assert len(smokesignal.receivers['bar']) == 0
 
         @smokesignal.on(('foo', 'bar'))
         def my_callback():
             pass
 
-        assert len(smokesignal._receivers['foo']) == 1
-        assert len(smokesignal._receivers['bar']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
+        assert len(smokesignal.receivers['bar']) == 1
 
     def test_on_decorator_max_calls(self):
         # Make a method that has a call count
@@ -155,7 +155,7 @@ class SmokesignalTestCase(TestCase):
 
         # Register first - like a cecorator
         smokesignal.on('foo', max_calls=3)(cb)
-        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
 
         # Call a bunch of times
         for x in range(10):
@@ -223,7 +223,7 @@ class SmokesignalTestCase(TestCase):
 
         # Register first
         smokesignal.once('foo', cb)
-        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
 
         # Call twice
         smokesignal.emit('foo')
@@ -239,7 +239,7 @@ class SmokesignalTestCase(TestCase):
 
         # Register first like a decorator
         smokesignal.once('foo')(cb)
-        assert len(smokesignal._receivers['foo']) == 1
+        assert len(smokesignal.receivers['foo']) == 1
 
         # Call twice
         smokesignal.emit('foo')

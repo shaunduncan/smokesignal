@@ -13,7 +13,7 @@ __all__ = ['emit', 'emitting', 'signals', 'responds_to', 'on', 'once',
 
 
 # Collection of receivers/callbacks
-_receivers = defaultdict(set)
+receivers = defaultdict(set)
 _pyversion = sys.version_info[:2]
 
 
@@ -24,7 +24,7 @@ def emit(signal, *args, **kwargs):
 
     :param signal: Signal to send
     """
-    for callback in set(_receivers[signal]):  # Make a copy in case of any ninja signals
+    for callback in set(receivers[signal]):  # Make a copy in case of any ninja signals
         _call(callback, args=args, kwargs=kwargs)
 
 
@@ -70,7 +70,7 @@ def signals(callback):
     :param callback: A callable registered with smokesignal
     :returns: Tuple of all signals callback responds to
     """
-    return tuple(s for s in _receivers if responds_to(callback, s))
+    return tuple(s for s in receivers if responds_to(callback, s))
 
 
 def responds_to(callback, signal):
@@ -81,7 +81,7 @@ def responds_to(callback, signal):
     :param signal: A signal to check if callback responds
     :returns: True if callback responds to signal, False otherwise
     """
-    return callback in _receivers[signal]
+    return callback in receivers[signal]
 
 
 def on(signals, callback=None, max_calls=None):
@@ -135,7 +135,7 @@ def _on(on_signals, callback, max_calls=None):
 
     # Register the callback
     for signal in on_signals:
-        _receivers[signal].add(callback)
+        receivers[signal].add(callback)
 
     # Setup responds_to partial for use later
     if not hasattr(callback, 'responds_to'):
@@ -169,7 +169,7 @@ def disconnect(callback):
     # callbacks not responding to signal arguments. We don't need that because we're
     # disconnecting all the valid ones here
     for signal in signals(callback):
-        _receivers[signal].remove(callback)
+        receivers[signal].remove(callback)
 
 
 def disconnect_from(callback, signals):
@@ -187,22 +187,22 @@ def disconnect_from(callback, signals):
     # Remove callback from receiver list if it responds to the signal
     for signal in signals:
         if responds_to(callback, signal):
-            _receivers[signal].remove(callback)
+            receivers[signal].remove(callback)
 
 
 def clear(*signals):
     """
     Clears all callbacks for a particular signal or signals
     """
-    signals = signals if signals else _receivers.keys()
+    signals = signals if signals else receivers.keys()
 
     for signal in signals:
-        _receivers[signal].clear()
+        receivers[signal].clear()
 
 
 def clear_all():
     """
     Clears all callbacks for all signals
     """
-    for key in _receivers.keys():
-        _receivers[key].clear()
+    for key in receivers.keys():
+        receivers[key].clear()
