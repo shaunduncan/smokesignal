@@ -1,10 +1,10 @@
 """
 smokesignal.py - simple event signaling
 """
-import sys
 import types
 
 from collections import defaultdict
+from contextlib import contextmanager
 from functools import partial
 
 
@@ -14,7 +14,6 @@ __all__ = ['emit', 'emitting', 'signals', 'responds_to', 'on', 'once',
 
 # Collection of receivers/callbacks
 receivers = defaultdict(set)
-_pyversion = sys.version_info[:2]
 
 
 def emit(signal, *args, **kwargs):
@@ -28,22 +27,20 @@ def emit(signal, *args, **kwargs):
         _call(callback, args=args, kwargs=kwargs)
 
 
-class emitting(object):
+@contextmanager
+def emitting(exit, enter=None):
     """
     Context manager for emitting signals either on enter or on exit of a context.
     By default, if this context manager is created using a single arg-style argument,
     it will emit a signal on exit. Otherwise, keyword arguments indicate signal points
     """
-    def __init__(self, exit, enter=None):
-        self.exit = exit
-        self.enter = enter
+    if enter is not None:
+        emit(enter)
 
-    def __enter__(self):
-        if self.enter is not None:
-            emit(self.enter)
-
-    def __exit__(self, exc_type, exc_value, tb):
-        emit(self.exit)
+    try:
+        yield
+    finally:
+        emit(exit)
 
 
 def _call(callback, args=[], kwargs={}):
