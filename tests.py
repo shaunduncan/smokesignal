@@ -256,6 +256,18 @@ class TestSmokesignal(object):
         assert 'foo' in self.fn.signals()
         assert 'bar' in self.fn.signals()
 
+    def test_on_creates_disconnect_fn(self):
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert hasattr(self.fn, 'disconnect')
+        self.fn.disconnect()
+        assert self.fn.signals() == tuple()
+
+    def test_on_creates_disconnect_from_fn(self):
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert hasattr(self.fn, 'disconnect_from')
+        self.fn.disconnect_from('foo')
+        assert self.fn.signals() == ('bar',)
+
     def test_instance_method(self):
         class Foo(object):
             def __init__(self):

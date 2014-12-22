@@ -127,7 +127,8 @@ def _on(on_signals, callback, max_calls=None):
     :param callback: A callable that should repond to supplied signal(s)
     :param max_calls: Integer maximum calls for callback. None for no limit.
     """
-    assert callable(callback), 'Signal callbacks must be callable'
+    if not callable(callback):
+        raise AssertionError('Signal callbacks must be callable')
 
     # Support for lists of signals
     if not isinstance(on_signals, (list, tuple)):
@@ -146,6 +147,14 @@ def _on(on_signals, callback, max_calls=None):
     # Setup signals partial for use later.
     if not hasattr(callback, 'signals'):
         callback.signals = partial(signals, callback)
+
+    # Setup disconnect partial for user later
+    if not hasattr(callback, 'disconnect'):
+        callback.disconnect = partial(disconnect, callback)
+
+    # Setup disconnect_from partial for user later
+    if not hasattr(callback, 'disconnect_from'):
+        callback.disconnect_from = partial(disconnect_from, callback)
 
     return callback
 
