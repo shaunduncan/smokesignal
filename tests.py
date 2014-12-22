@@ -119,6 +119,7 @@ class TestSmokesignal(object):
             smokesignal.emit('foo')
 
         assert self.fn.call_count == 3
+        assert smokesignal.receivers['foo'] == set()
 
     def test_on_decorator_registers(self):
         @smokesignal.on('foo')
@@ -216,6 +217,7 @@ class TestSmokesignal(object):
         smokesignal.emit('foo')
 
         assert self.fn.call_count == 1
+        assert smokesignal.receivers['foo'] == set()
 
     def test_once_decorator(self):
         # Register and call twice

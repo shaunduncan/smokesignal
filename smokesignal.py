@@ -53,11 +53,16 @@ def _call(callback, args=[], kwargs={}):
     if not hasattr(callback, '_max_calls'):
         callback._max_calls = None
 
-    if callback._max_calls is None or callback._max_calls > 0:
-        if callback._max_calls is not None:
-            callback._max_calls -= 1
-
+    # None implies no callback limit
+    if callback._max_calls is None:
         return callback(*args, **kwargs)
+
+    # Should the signal be disconnected?
+    if callback._max_calls <= 0:
+        return disconnect(callback)
+
+    callback._max_calls -= 1
+    return callback(*args, **kwargs)
 
 
 def signals(callback):
