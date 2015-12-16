@@ -1,282 +1,272 @@
 """ Unit tests """
-from unittest import TestCase
+import types
 
-from mock import Mock, patch
+from collections import defaultdict
+
+import pytest
+
+from mock import Mock, call, patch
 
 import smokesignal
 
 
-class SmokesignalTestCase(TestCase):
+class TestSmokesignal(object):
 
-    def setUp(self):
-        self.callback = lambda x: x
-        self.mock_callback = Mock()
+    def setup(self):
+        self.fn = Mock(spec=types.FunctionType)
+        patch.object(smokesignal, 'receivers', defaultdict(set)).start()
 
-    def tearDown(self):
-        smokesignal.clear_all()
+    def teardown(self):
+        patch.stopall()
 
     def test_call_no_max_calls(self):
-        def foo():
-            foo.call_count += 1
-        foo.call_count = 0
-
         for x in range(5):
-            smokesignal._call(foo)
-
-        assert foo.call_count == 5
+            smokesignal._call(self.fn)
+        assert self.fn.call_count == 5
 
     def test_call_with_max_calls(self):
-        def foo():
-            foo.call_count += 1
-        foo.call_count = 0
-        foo._max_calls = 1
-
+        self.fn._max_calls = 1
         for x in range(5):
-            smokesignal._call(foo)
-
-        assert foo.call_count == 1
+            smokesignal._call(self.fn)
+        assert self.fn.call_count == 1
 
     def test_clear(self):
-        smokesignal.on('foo', self.callback)
-        assert len(smokesignal.receivers['foo']) == 1
+        smokesignal.on('foo', self.fn)
+        assert smokesignal.receivers['foo'] == set([self.fn])
 
         smokesignal.clear('foo')
-        assert len(smokesignal.receivers['foo']) == 0
+        assert smokesignal.receivers['foo'] == set()
 
     def test_clear_no_args_clears_all(self):
-        smokesignal.on(('foo', 'bar', 'baz'), self.callback)
-        assert len(smokesignal.receivers['foo']) == 1
-        assert len(smokesignal.receivers['bar']) == 1
-        assert len(smokesignal.receivers['baz']) == 1
+        smokesignal.on(('foo', 'bar', 'baz'), self.fn)
+        assert smokesignal.receivers == {
+            'foo': set([self.fn]),
+            'bar': set([self.fn]),
+            'baz': set([self.fn]),
+        }
 
         smokesignal.clear()
-        assert len(smokesignal.receivers['foo']) == 0
-        assert len(smokesignal.receivers['bar']) == 0
-        assert len(smokesignal.receivers['baz']) == 0
-
+        assert smokesignal.receivers == {
+            'foo': set(),
+            'bar': set(),
+            'baz': set(),
+        }
 
     def test_clear_many(self):
-        smokesignal.on(('foo', 'bar', 'baz'), self.callback)
-        assert len(smokesignal.receivers['foo']) == 1
-        assert len(smokesignal.receivers['bar']) == 1
-        assert len(smokesignal.receivers['baz']) == 1
-
+        smokesignal.on(('foo', 'bar', 'baz'), self.fn)
         smokesignal.clear('foo', 'bar')
-        assert len(smokesignal.receivers['foo']) == 0
-        assert len(smokesignal.receivers['bar']) == 0
-        assert len(smokesignal.receivers['baz']) == 1
+        assert smokesignal.receivers == {
+            'foo': set(),
+            'bar': set(),
+            'baz': set([self.fn]),
+        }
 
     def test_clear_all(self):
-        smokesignal.on(('foo', 'bar'), self.callback)
-        assert len(smokesignal.receivers['foo']) == 1
-        assert len(smokesignal.receivers['bar']) == 1
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert smokesignal.receivers == {
+            'foo': set([self.fn]),
+            'bar': set([self.fn]),
+        }
 
         smokesignal.clear_all()
-        assert len(smokesignal.receivers['foo']) == 0
-        assert len(smokesignal.receivers['bar']) == 0
+        assert smokesignal.receivers == {
+            'foo': set(),
+            'bar': set(),
+        }
 
     def test_emit_with_no_callbacks(self):
-        smokesignal.emit('foo')
+        try:
+            smokesignal.emit('foo')
+        except:
+            pytest.fail('Emitting a signal with no callback should not have raised')
 
     def test_emit_with_callbacks(self):
         # Register first
-        smokesignal.on('foo', self.mock_callback)
-        assert smokesignal.responds_to(self.mock_callback, 'foo')
-
+        smokesignal.on('foo', self.fn)
         smokesignal.emit('foo')
-        assert self.mock_callback.called
+        assert self.fn.called
 
     def test_emit_with_callback_args(self):
         # Register first
-        smokesignal.on('foo', self.mock_callback)
-        assert smokesignal.responds_to(self.mock_callback, 'foo')
-
+        smokesignal.on('foo', self.fn)
         smokesignal.emit('foo', 1, 2, 3, foo='bar')
-        assert self.mock_callback.called_with(1, 2, 3, foo='bar')
+        self.fn.assert_called_with(1, 2, 3, foo='bar')
 
-    def test_on_raises(self):
-        self.assertRaises(AssertionError, smokesignal.on, 'foo', 'bar')
+    def test_on_must_have_callables(self):
+        with pytest.raises(AssertionError):
+            smokesignal.on('foo', 'bar')
 
     def test_on_registers(self):
-        assert len(smokesignal.receivers['foo']) == 0
-        smokesignal.on('foo', self.callback)
-        assert len(smokesignal.receivers['foo']) == 1
+        smokesignal.on('foo', self.fn)
+        assert smokesignal.receivers['foo'] == set([self.fn])
 
     def test_on_registers_many(self):
-        assert len(smokesignal.receivers['foo']) == 0
-        assert len(smokesignal.receivers['bar']) == 0
+        assert smokesignal.receivers == {}
 
-        smokesignal.on(('foo', 'bar'), self.callback)
+        smokesignal.on(('foo', 'bar'), self.fn)
 
-        assert len(smokesignal.receivers['foo']) == 1
-        assert len(smokesignal.receivers['bar']) == 1
+        assert smokesignal.receivers == {
+            'foo': set([self.fn]),
+            'bar': set([self.fn]),
+        }
 
     def test_on_max_calls(self):
-        # Make a method that has a call count
-        def cb():
-            cb.call_count += 1
-        cb.call_count = 0
-
         # Register first
-        smokesignal.on('foo', cb, max_calls=3)
-        assert len(smokesignal.receivers['foo']) == 1
+        smokesignal.on('foo', self.fn, max_calls=3)
 
         # Call a bunch of times
         for x in range(10):
             smokesignal.emit('foo')
 
-        assert cb.call_count == 3
+        assert self.fn.call_count == 3
+        assert smokesignal.receivers['foo'] == set()
 
     def test_on_decorator_registers(self):
-        assert len(smokesignal.receivers['foo']) == 0
-
         @smokesignal.on('foo')
         def my_callback():
             pass
-
-        assert len(smokesignal.receivers['foo']) == 1
+        assert smokesignal.receivers['foo'] == set([my_callback])
 
     def test_on_decorator_registers_many(self):
-        assert len(smokesignal.receivers['foo']) == 0
-        assert len(smokesignal.receivers['bar']) == 0
-
         @smokesignal.on(('foo', 'bar'))
         def my_callback():
             pass
 
-        assert len(smokesignal.receivers['foo']) == 1
-        assert len(smokesignal.receivers['bar']) == 1
+        assert smokesignal.receivers == {
+            'foo': set([my_callback]),
+            'bar': set([my_callback]),
+        }
 
     def test_on_decorator_max_calls(self):
-        # Make a method that has a call count
-        def cb():
-            cb.call_count += 1
-        cb.call_count = 0
-
-        # Register first - like a cecorator
-        smokesignal.on('foo', max_calls=3)(cb)
-        assert len(smokesignal.receivers['foo']) == 1
+        # Register first - like a decorator
+        smokesignal.on('foo', max_calls=3)(self.fn)
 
         # Call a bunch of times
         for x in range(10):
             smokesignal.emit('foo')
 
-        assert cb.call_count == 3
+        assert self.fn.call_count == 3
+
+    def test_on_decorator_max_calls_as_arg(self):
+        # Register first - like a decorator
+        smokesignal.on('foo', 3)(self.fn)
+
+        # Call a bunch of times
+        for x in range(10):
+            smokesignal.emit('foo')
+
+        assert self.fn.call_count == 3
 
     def test_disconnect(self):
         # Register first
-        smokesignal.on(('foo', 'bar'), self.callback)
-        assert smokesignal.responds_to(self.callback, 'foo')
-        assert smokesignal.responds_to(self.callback, 'bar')
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert smokesignal.responds_to(self.fn, 'foo')
+        assert smokesignal.responds_to(self.fn, 'bar')
 
-        smokesignal.disconnect(self.callback)
-        assert not smokesignal.responds_to(self.callback, 'foo')
-        assert not smokesignal.responds_to(self.callback, 'bar')
+        smokesignal.disconnect(self.fn)
+        assert not smokesignal.responds_to(self.fn, 'foo')
+        assert not smokesignal.responds_to(self.fn, 'bar')
 
     def test_disconnect_from_removes_only_one(self):
         # Register first
-        smokesignal.on(('foo', 'bar'), self.callback)
-        assert smokesignal.responds_to(self.callback, 'foo')
-        assert smokesignal.responds_to(self.callback, 'bar')
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert smokesignal.responds_to(self.fn, 'foo')
+        assert smokesignal.responds_to(self.fn, 'bar')
 
         # Remove it
-        smokesignal.disconnect_from(self.callback, 'foo')
-        assert not smokesignal.responds_to(self.callback, 'foo')
-        assert smokesignal.responds_to(self.callback, 'bar')
+        smokesignal.disconnect_from(self.fn, 'foo')
+        assert not smokesignal.responds_to(self.fn, 'foo')
+        assert smokesignal.responds_to(self.fn, 'bar')
 
     def test_disconnect_from_removes_all(self):
         # Register first
-        smokesignal.on(('foo', 'bar'), self.callback)
-        assert smokesignal.responds_to(self.callback, 'foo')
-        assert smokesignal.responds_to(self.callback, 'bar')
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert smokesignal.responds_to(self.fn, 'foo')
+        assert smokesignal.responds_to(self.fn, 'bar')
 
         # Remove it
-        smokesignal.disconnect_from(self.callback, ('foo', 'bar'))
-        assert not smokesignal.responds_to(self.callback, 'foo')
-        assert not smokesignal.responds_to(self.callback, 'bar')
+        smokesignal.disconnect_from(self.fn, ('foo', 'bar'))
+        assert not smokesignal.responds_to(self.fn, 'foo')
+        assert not smokesignal.responds_to(self.fn, 'bar')
 
     def test_signals(self):
         # Register first
-        smokesignal.on(('foo', 'bar'), self.callback)
+        smokesignal.on(('foo', 'bar'), self.fn)
 
-        assert 'foo' in smokesignal.signals(self.callback)
-        assert 'bar' in smokesignal.signals(self.callback)
+        assert 'foo' in smokesignal.signals(self.fn)
+        assert 'bar' in smokesignal.signals(self.fn)
 
     def test_responds_to_true(self):
         # Register first
-        smokesignal.on('foo', self.callback)
-        assert smokesignal.responds_to(self.callback, 'foo') is True
+        smokesignal.on('foo', self.fn)
+        assert smokesignal.responds_to(self.fn, 'foo') is True
 
     def test_responds_to_false(self):
         # Register first
-        smokesignal.on('foo', self.callback)
-        assert smokesignal.responds_to(self.callback, 'bar') is False
+        smokesignal.on('foo', self.fn)
+        assert smokesignal.responds_to(self.fn, 'bar') is False
 
     def test_once_raises(self):
-        self.assertRaises(AssertionError, smokesignal.once, 'foo', 'bar')
+        with pytest.raises(AssertionError):
+            smokesignal.once('foo', 'bar')
 
     def test_once(self):
-        # Make a method that has a call count
-        def cb():
-            cb.call_count += 1
-        cb.call_count = 0
-
-        # Register first
-        smokesignal.once('foo', cb)
-        assert len(smokesignal.receivers['foo']) == 1
-
-        # Call twice
+        # Register and call twice
+        smokesignal.once('foo', self.fn)
         smokesignal.emit('foo')
         smokesignal.emit('foo')
 
-        assert cb.call_count == 1
+        assert self.fn.call_count == 1
+        assert smokesignal.receivers['foo'] == set()
 
     def test_once_decorator(self):
-        # Make a method that has a call count
-        def cb():
-            cb.call_count += 1
-        cb.call_count = 0
-
-        # Register first like a decorator
-        smokesignal.once('foo')(cb)
-        assert len(smokesignal.receivers['foo']) == 1
-
-        # Call twice
+        # Register and call twice
+        smokesignal.once('foo')(self.fn)
         smokesignal.emit('foo')
         smokesignal.emit('foo')
 
-        assert cb.call_count == 1
+        assert self.fn.call_count == 1
 
     @patch('smokesignal.emit')
     def test_emitting_arg_style(self, emit):
         with smokesignal.emitting('foo'):
             pass
-
-        assert emit.call_count == 1
+        emit.assert_called_with('foo')
 
     @patch('smokesignal.emit')
     def test_emitting_kwarg_style(self, emit):
         with smokesignal.emitting(enter='foo', exit='bar'):
             pass
-
-        assert emit.call_count == 2
+        emit.assert_has_calls([call('foo'), call('bar')])
 
     def test_on_creates_responds_to_fn(self):
         # Registering a callback should create partials to smokesignal
         # methods for later user
-        smokesignal.on('foo', self.callback)
+        smokesignal.on('foo', self.fn)
 
-        assert hasattr(self.callback, 'responds_to')
-        assert self.callback.responds_to('foo')
+        assert hasattr(self.fn, 'responds_to')
+        assert self.fn.responds_to('foo')
 
     def test_on_creates_signals_fn(self):
         # Registering a callback should create partials to smokesignal
         # methods for later user
-        smokesignal.on(('foo', 'bar'), self.callback)
+        smokesignal.on(('foo', 'bar'), self.fn)
 
-        assert hasattr(self.callback, 'signals')
-        assert 'foo' in self.callback.signals()
-        assert 'bar' in self.callback.signals()
+        assert hasattr(self.fn, 'signals')
+        assert 'foo' in self.fn.signals()
+        assert 'bar' in self.fn.signals()
+
+    def test_on_creates_disconnect_fn(self):
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert hasattr(self.fn, 'disconnect')
+        self.fn.disconnect()
+        assert self.fn.signals() == tuple()
+
+    def test_on_creates_disconnect_from_fn(self):
+        smokesignal.on(('foo', 'bar'), self.fn)
+        assert hasattr(self.fn, 'disconnect_from')
+        self.fn.disconnect_from('foo')
+        assert self.fn.signals() == ('bar',)
 
     def test_instance_method(self):
         class Foo(object):
@@ -327,9 +317,6 @@ class SmokesignalTestCase(TestCase):
                 self.foo_count += 1
 
         foo = Foo()
-        smokesignal.emit('foo')
-        smokesignal.emit('foo')
-        smokesignal.emit('foo')
-        smokesignal.emit('foo')
-        smokesignal.emit('foo')
+        for x in range(5):
+            smokesignal.emit('foo')
         assert foo.foo_count == 1

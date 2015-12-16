@@ -1,10 +1,10 @@
 """
 smokesignal.py - simple event signaling
 """
-import sys
 import types
 
 from collections import defaultdict
+from contextlib import contextmanager
 from functools import partial
 
 
@@ -14,7 +14,6 @@ __all__ = ['emit', 'emitting', 'signals', 'responds_to', 'on', 'once',
 
 # Collection of receivers/callbacks
 receivers = defaultdict(set)
-_pyversion = sys.version_info[:2]
 
 
 def emit(signal, *args, **kwargs):
@@ -28,22 +27,20 @@ def emit(signal, *args, **kwargs):
         _call(callback, args=args, kwargs=kwargs)
 
 
-class emitting(object):
+@contextmanager
+def emitting(exit, enter=None):
     """
     Context manager for emitting signals either on enter or on exit of a context.
     By default, if this context manager is created using a single arg-style argument,
     it will emit a signal on exit. Otherwise, keyword arguments indicate signal points
     """
-    def __init__(self, exit, enter=None):
-        self.exit = exit
-        self.enter = enter
+    if enter is not None:
+        emit(enter)
 
-    def __enter__(self):
-        if self.enter is not None:
-            emit(self.enter)
-
-    def __exit__(self, exc_type, exc_value, tb):
-        emit(self.exit)
+    try:
+        yield
+    finally:
+        emit(exit)
 
 
 def _call(callback, args=[], kwargs={}):
@@ -56,11 +53,16 @@ def _call(callback, args=[], kwargs={}):
     if not hasattr(callback, '_max_calls'):
         callback._max_calls = None
 
-    if callback._max_calls is None or callback._max_calls > 0:
-        if callback._max_calls is not None:
-            callback._max_calls -= 1
-
+    # None implies no callback limit
+    if callback._max_calls is None:
         return callback(*args, **kwargs)
+
+    # Should the signal be disconnected?
+    if callback._max_calls <= 0:
+        return disconnect(callback)
+
+    callback._max_calls -= 1
+    return callback(*args, **kwargs)
 
 
 def signals(callback):
@@ -125,7 +127,8 @@ def _on(on_signals, callback, max_calls=None):
     :param callback: A callable that should repond to supplied signal(s)
     :param max_calls: Integer maximum calls for callback. None for no limit.
     """
-    assert callable(callback), 'Signal callbacks must be callable'
+    if not callable(callback):
+        raise AssertionError('Signal callbacks must be callable')
 
     # Support for lists of signals
     if not isinstance(on_signals, (list, tuple)):
@@ -144,6 +147,14 @@ def _on(on_signals, callback, max_calls=None):
     # Setup signals partial for use later.
     if not hasattr(callback, 'signals'):
         callback.signals = partial(signals, callback)
+
+    # Setup disconnect partial for user later
+    if not hasattr(callback, 'disconnect'):
+        callback.disconnect = partial(disconnect, callback)
+
+    # Setup disconnect_from partial for user later
+    if not hasattr(callback, 'disconnect_from'):
+        callback.disconnect_from = partial(disconnect_from, callback)
 
     return callback
 
