@@ -121,7 +121,7 @@ d.addCallback(results)
 ```
 
 You can also pass in an explicit `errback` argument. This will get called for
-each Failure caused by one of your callbacks.
+each `Failure` caused by one of your receivers.
 
 ```python
 import smokesignal
@@ -130,7 +130,7 @@ import smokesignal
 def err(): return {}['ono!']
 
 def handleError(f):
-    return repr(f.type.__name__)
+    return f.type.__name__
 
 # pass in the errback argument to handle failures
 d = smokesignal.emit('tx', errback=handleError)
