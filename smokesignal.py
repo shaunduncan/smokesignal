@@ -15,21 +15,21 @@ __all__ = ['emit', 'emitting', 'signals', 'responds_to', 'on', 'once',
 # Collection of receivers/callbacks
 receivers = defaultdict(set)
 
-defer = None
+_call_partial = None
 
 def install_twisted():
     """
     If twisted is available, make `emit' return a DeferredList
     """
-    global emit, defer
+    global emit, _call_partial
     try:
-        from twisted.internet import defer as _defer
-        defer = _defer
+        from twisted.internet import defer
         emit = _emit_twisted
+        _call_partial = defer.maybeDeferred
+        return True
     except ImportError:
-        """
-        Twisted support will not be available.
-        """
+        _call_partial = lambda fn, *a, **kw: fn(*a, **kw)
+        return False
 
 def emit(signal, *args, **kwargs):
     """
@@ -52,17 +52,15 @@ def _emit_twisted(signal, *args, **kwargs):
 
     dl = []
     for callback in set(receivers[signal]):  # Make a copy in case of any ninja signals
-        dl.append(
-                defer.maybeDeferred(
-                    _call, callback, args=args, kwargs=kwargs)
-                .addErrback(errback)
-                )
+        d = _call(callback, args=args, kwargs=kwargs)
+        if d is not None:
+            dl.append(d.addErrback(errback))
 
     def simplify(results):
         return [x[1] for x in results]
-    return defer.DeferredList(dl).addCallback(simplify)
 
-install_twisted()
+    from twisted.internet.defer import DeferredList
+    return DeferredList(dl).addCallback(simplify)
 
 @contextmanager
 def emitting(exit, enter=None):
@@ -92,14 +90,15 @@ def _call(callback, args=[], kwargs={}):
 
     # None implies no callback limit
     if callback._max_calls is None:
-        return callback(*args, **kwargs)
+        return _call_partial(callback, *args, **kwargs)
 
     # Should the signal be disconnected?
     if callback._max_calls <= 0:
         return disconnect(callback)
 
     callback._max_calls -= 1
-    return callback(*args, **kwargs)
+
+    return _call_partial(callback, *args, **kwargs)
 
 
 def signals(callback):
@@ -254,3 +253,6 @@ def clear_all():
     """
     for key in receivers.keys():
         receivers[key].clear()
+
+_twisted_support = install_twisted()
+
