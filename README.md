@@ -97,6 +97,56 @@ smokesignal.disconnect(my_callback)
 smokesignal.disconnect_from(my_callback, 'foo')
 ```
 
+### Twisted Support
+
+When Twisted is installed (14.0 or greater recommended), `emit` will return a
+deferred that resolves to a list of results.
+
+```python
+import smokesignal
+
+@smokesignal.on('tx')
+def f1(): return 'f1'
+
+@smokesignal.on('tx')
+def f2(): return 'f2'
+
+d = smokesignal.emit('tx')
+
+def results(rr):
+    print rr
+
+d.addCallback(results)
+# => ['f1', 'f2']
+```
+
+You can also pass in an explicit `errback` argument. This will get called for
+each Failure caused by one of your callbacks.
+
+```python
+import smokesignal
+
+@smokesignal.on('tx')
+def err(): return {}['ono!']
+
+def handleError(f):
+    return repr(f.type.__name__)
+
+# pass in the errback argument to handle failures
+d = smokesignal.emit('tx', errback=handleError)
+
+def results(rr):
+    print rr
+
+d.addCallback(results)
+# => ['KeyError']
+```
+
+Errback handling works the way you would expect in Twisted: If your `errback`
+handler returns the failure (or raises an exception), the operation will fail,
+but if it returns anything else (including `None`), it will be treated as a
+successful result.
+
 ### Other Batteries Included
 
 
