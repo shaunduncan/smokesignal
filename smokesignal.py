@@ -15,6 +15,21 @@ __all__ = ['emit', 'emitting', 'signals', 'responds_to', 'on', 'once',
 # Collection of receivers/callbacks
 receivers = defaultdict(set)
 
+defer = None
+
+def install_twisted():
+    """
+    If twisted is available, make `emit' return a DeferredList
+    """
+    global emit, defer
+    try:
+        from twisted.internet import defer as _defer
+        defer = _defer
+        emit = _emit_twisted
+    except ImportError:
+        """
+        Twisted support will not be available.
+        """
 
 def emit(signal, *args, **kwargs):
     """
@@ -26,6 +41,28 @@ def emit(signal, *args, **kwargs):
     for callback in set(receivers[signal]):  # Make a copy in case of any ninja signals
         _call(callback, args=args, kwargs=kwargs)
 
+def _emit_twisted(signal, *args, **kwargs):
+    """
+    Emits a single signal to call callbacks registered to respond to that signal.
+    Optionally accepts args and kwargs that are passed directly to callbacks.
+
+    :param signal: Signal to send
+    """
+    errback = kwargs.pop('errback', lambda f: f)
+
+    dl = []
+    for callback in set(receivers[signal]):  # Make a copy in case of any ninja signals
+        dl.append(
+                defer.maybeDeferred(
+                    _call, callback, args=args, kwargs=kwargs)
+                .addErrback(errback)
+                )
+
+    def simplify(results):
+        return [x[1] for x in results]
+    return defer.DeferredList(dl).addCallback(simplify)
+
+install_twisted()
 
 @contextmanager
 def emitting(exit, enter=None):
