@@ -20,6 +20,8 @@ _call_partial = None
 def install_twisted():
     """
     If twisted is available, make `emit' return a DeferredList
+
+    This has been successfully tested with Twisted 14.0 and later.
     """
     global emit, _call_partial
     try:
