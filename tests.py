@@ -9,6 +9,9 @@ from mock import Mock, call, patch
 
 import smokesignal
 
+if smokesignal._twisted_support:
+    from tests_twisted import TestTwisted
+
 
 class TestSmokesignal(object):
 
