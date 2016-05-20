@@ -65,19 +65,19 @@ def _emit_twisted(signal, *args, **kwargs):
     return DeferredList(dl).addCallback(simplify)
 
 @contextmanager
-def emitting(exit, enter=None):
+def emitting(exit, enter=None, *args, **kwargs):
     """
     Context manager for emitting signals either on enter or on exit of a context.
     By default, if this context manager is created using a single arg-style argument,
     it will emit a signal on exit. Otherwise, keyword arguments indicate signal points
     """
     if enter is not None:
-        emit(enter)
+        emit(enter, *args, **kwargs)
 
     try:
         yield
     finally:
-        emit(exit)
+        emit(exit, *args, **kwargs)
 
 
 def _call(callback, args=[], kwargs={}):
