@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.7.0'
+version = '0.7.0+brightmd.4'
 
 setup(name='smokesignal',
       version=version,
@@ -27,4 +27,7 @@ setup(name='smokesignal',
       license='MIT',
       packages=find_packages(),
       py_modules=['smokesignal'],
+      extras_require = {
+          'dev': ['mock', 'pytest', 'pytest-cov', 'tox', 'awscli', 's3pypi'],
+      },
       )
